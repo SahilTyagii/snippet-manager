@@ -27,6 +27,9 @@ snippet-manager
 ```
 
 ## Screenshots
+![image](https://github.com/user-attachments/assets/9c6de265-c38e-4fa5-8538-e6f68fa15ba6)
+![image](https://github.com/user-attachments/assets/961952dc-e3ef-4eac-8a7e-b2bcea3b52d9)
+![image](https://github.com/user-attachments/assets/ea2c7670-0ddf-45ca-9594-2876bfa82cef)
 
 
 ### Features
