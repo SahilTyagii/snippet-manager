@@ -12,8 +12,13 @@
     "start": "node src/index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Sahil Tyagi",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SahilTyagii/snippet-manager.git"
+  },
+  "homepage": "https://github.com/SahilTyagii/snippet-manager.git",
   "dependencies": {
     "chalk": "^5.3.0",
     "figlet": "^1.8.0",
