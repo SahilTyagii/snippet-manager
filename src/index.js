@@ -95,17 +95,21 @@ async function appendSnippetToFile() {
         },
     ]);
 
-    const { filePath } = await inquirer.prompt([
-        {
-            type: 'input',
-            name: 'filePath',
-            message: 'Enter the file path where you want to append the snippet (Example: ./controllers/user.js):',
-            validate: (input) => {
-                if (!input) return 'File path cannot be empty.';
-                return true;
+    let filePath = '';
+    while (!filePath) {
+        const { inputFilePath } = await inquirer.prompt([
+            {
+                type: 'input',
+                name: 'inputFilePath',
+                message: 'Enter the file path where you want to append the snippet (Example: ./controllers/user.js):',
+                validate: (input) => {
+                    if (!input) return 'File path cannot be empty.';
+                    return true;
+                },
             },
-        },
-    ]);
+        ]);
+        filePath = inputFilePath;
+    }
 
     const snippetContent = `// Snippet: ${db.data.snippets[snippetIndex].title}\n${db.data.snippets[snippetIndex].code}\n\n`;
     try {
@@ -115,6 +119,7 @@ async function appendSnippetToFile() {
         console.error(chalk.red(`Failed to append to file: ${error.message}`));
     }
 }
+
 
 async function addMultiLineSnippet() {
     console.log(chalk.yellow('Enter your multi-line code snippet. Type "END" on a new line when you are done:\n'));
