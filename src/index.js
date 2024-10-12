@@ -3,32 +3,28 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { Low, JSONFile } from 'lowdb'; // Import Low and JSONFile from lowdb
-import inquirer from 'inquirer'; // Import Inquirer for prompts
-import chalk from 'chalk'; // Import Chalk for colored output
-import readline from 'readline'; // Import the readline module
-import figlet from 'figlet'; // Import figlet
+import { Low, JSONFile } from 'lowdb';
+import inquirer from 'inquirer';
+import chalk from 'chalk';
+import readline from 'readline';
+import figlet from 'figlet';
 
-// Set up the JSON adapter for lowdb, pointing to the global .snippet-manager directory
-const dbDir = path.join(os.homedir(), '.snippet-manager'); // Global storage path
-const dbFilePath = path.join(dbDir, 'db.json'); // Full path to the db.json file
+const dbDir = path.join(os.homedir(), '.snippet-manager');
+const dbFilePath = path.join(dbDir, 'db.json');
 
-// Ensure the directory exists
 if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true }); // Create the directory if it doesn't exist
+    fs.mkdirSync(dbDir, { recursive: true });
 }
 
 const adapter = new JSONFile(dbFilePath);
 const db = new Low(adapter);
 
-// Initialize the database
 async function initDB() {
-    await db.read(); // Read the database file
-    db.data ||= { snippets: [] }; // Initialize snippets array if it doesn't exist
-    await db.write(); // Write the initial state back to db.json
+    await db.read();
+    db.data ||= { snippets: [] };
+    await db.write();
 }
 
-// Display the application title using figlet
 function displayTitle() {
     figlet.text('Snippet Manager', { font: 'Slant' }, (err, data) => {
         if (err) {
@@ -36,66 +32,58 @@ function displayTitle() {
             console.dir(err);
             return;
         }
-        console.log(chalk.blue(data)); // Display the title in blue
+        console.log(chalk.blue(data));
     });
 }
 
-// Add a new snippet
 async function addSnippet(title, code) {
-    await db.read(); // Read the current database
-    db.data.snippets.push({ title, code, version: 1, createdAt: new Date() }); // Add the new snippet
-    await db.write(); // Save changes to the database
+    await db.read();
+    db.data.snippets.push({ title, code, version: 1, createdAt: new Date() });
+    await db.write();
     console.log(chalk.green('Snippet added successfully!'));
 }
 
-// List all snippets
 async function listSnippets() {
-    await db.read(); // Read the current database
+    await db.read();
     if (db.data.snippets.length === 0) {
         console.log(chalk.yellow('No snippets found.'));
-        return; // Exit if no snippets are found
+        return;
     }
     db.data.snippets.forEach((snippet, index) => {
         console.log(chalk.blue(`${index + 1}. ${snippet.title} (Version: ${snippet.version})`));
     });
 }
 
-// Update a snippet
 async function updateSnippet(index, newCode) {
-    await db.read(); // Read the current database
+    await db.read();
     if (index < 0 || index >= db.data.snippets.length) {
         console.log(chalk.red('Invalid snippet index.'));
-        return; // Exit if the index is invalid
+        return;
     }
-    db.data.snippets[index].code = newCode; // Update the code
-    db.data.snippets[index].version += 1; // Increment version
-    await db.write(); // Save changes to the database
+    db.data.snippets[index].code = newCode;
+    db.data.snippets[index].version += 1;
+    await db.write();
     console.log(chalk.green('Snippet updated successfully!'));
 }
 
-// Delete a snippet
 async function deleteSnippet() {
-    await listSnippets(); // List snippets to choose from
-
+    await listSnippets();
     const { index } = await inquirer.prompt([
         { name: 'index', message: 'Enter snippet index to delete:', type: 'number' },
     ]);
-
-    const snippetIndex = index - 1; // Adjust for 0-based index
+    const snippetIndex = index - 1;
     if (snippetIndex < 0 || snippetIndex >= db.data.snippets.length) {
         console.log(chalk.red('Invalid snippet index.'));
-        return; // Exit if the index is invalid
+        return;
     }
-
-    const deletedSnippet = db.data.snippets.splice(snippetIndex, 1); // Remove the snippet
-    await db.write(); // Save changes to the database
+    const deletedSnippet = db.data.snippets.splice(snippetIndex, 1);
+    await db.write();
     console.log(chalk.green(`Snippet "${deletedSnippet[0].title}" deleted successfully!`));
 }
 
-// Append snippet to a specified file
 async function appendSnippetToFile() {
-    await db.read(); // Read the current database
-    const { snippetIndex } = await inquirer.prompt([ 
+    await db.read();
+    const { snippetIndex } = await inquirer.prompt([
         {
             type: 'list',
             name: 'snippetIndex',
@@ -119,16 +107,15 @@ async function appendSnippetToFile() {
         },
     ]);
 
-    const snippetContent = `// Snippet: ${db.data.snippets[snippetIndex].title}\n${db.data.snippets[snippetIndex].code}\n\n`; // Format the snippet
+    const snippetContent = `// Snippet: ${db.data.snippets[snippetIndex].title}\n${db.data.snippets[snippetIndex].code}\n\n`;
     try {
-        fs.appendFileSync(path.resolve(filePath), snippetContent); // Append to the specified file
+        fs.appendFileSync(path.resolve(filePath), snippetContent);
         console.log(chalk.green(`Snippet appended to ${filePath} successfully!`));
     } catch (error) {
         console.error(chalk.red(`Failed to append to file: ${error.message}`));
     }
 }
 
-// Function to add a multi-line snippet
 async function addMultiLineSnippet() {
     console.log(chalk.yellow('Enter your multi-line code snippet. Type "END" on a new line when you are done:\n'));
 
@@ -141,33 +128,32 @@ async function addMultiLineSnippet() {
 
     for await (const line of rl) {
         if (line.trim() === 'END') {
-            break; // Stop reading lines if user types "END"
+            break;
         }
-        lines.push(line); // Add the line to the array
+        lines.push(line);
     }
 
-    rl.close(); // Close the readline interface
+    rl.close();
 
-    const code = lines.join('\n'); // Join lines into a single string
+    const code = lines.join('\n');
     const { title } = await inquirer.prompt([
         { name: 'title', message: 'Snippet Title:' },
     ]);
 
-    await addSnippet(title, code); // Add the multi-line snippet
+    await addSnippet(title, code);
 }
 
-// Function to update a multi-line snippet
 async function updateMultiLineSnippet() {
-    await listSnippets(); // List snippets to choose from
+    await listSnippets();
 
     const { index } = await inquirer.prompt([
         { name: 'index', message: 'Enter snippet index to update:', type: 'number' },
     ]);
 
-    const snippetIndex = index - 1; // Adjust for 0-based index
+    const snippetIndex = index - 1;
     if (snippetIndex < 0 || snippetIndex >= db.data.snippets.length) {
         console.log(chalk.red('Invalid snippet index.'));
-        return; // Exit if the index is invalid
+        return;
     }
 
     console.log(chalk.yellow('Enter the new multi-line code snippet. Type "END" on a new line when you are done:\n'));
@@ -181,18 +167,17 @@ async function updateMultiLineSnippet() {
 
     for await (const line of rl) {
         if (line.trim() === 'END') {
-            break; // Stop reading lines if user types "END"
+            break;
         }
-        lines.push(line); // Add the line to the array
+        lines.push(line);
     }
 
-    rl.close(); // Close the readline interface
+    rl.close();
 
-    const newCode = lines.join('\n'); // Join lines into a single string
-    await updateSnippet(snippetIndex, newCode); // Update the selected snippet
+    const newCode = lines.join('\n');
+    await updateSnippet(snippetIndex, newCode);
 }
 
-// Prompt the user for action
 async function promptUser() {
     while (true) {
         const { action } = await inquirer.prompt([
@@ -213,36 +198,34 @@ async function promptUser() {
 
         switch (action) {
             case 'Add Snippet':
-                if (await addMultiLineSnippet()) return; // Exit if snippet added successfully
+                if (await addMultiLineSnippet()) return;
                 break;
             case 'List Snippets':
-                await listSnippets(); // Call the function to list snippets
+                await listSnippets();
                 break;
             case 'Update Snippet':
-                if (await updateMultiLineSnippet()) return; // Exit if snippet updated successfully
+                if (await updateMultiLineSnippet()) return;
                 break;
             case 'Delete Snippet':
-                await deleteSnippet(); // Delete a selected snippet
+                await deleteSnippet();
                 break;
             case 'Inject Snippet in File':
-                await appendSnippetToFile(); // Append snippet to a specified file
+                await appendSnippetToFile();
                 break;
             case 'Exit':
                 console.log(chalk.yellow('Exiting...'));
-                console.clear(); // Clear the console
-                return; // Exit the loop and the application
+                console.clear();
+                return;
         }
     }
 }
 
-// Main function to run the tracker
 async function main() {
-    displayTitle(); // Display the application title
-    await initDB(); // Initialize the database
-    await promptUser(); // Start prompting the user for actions
+    displayTitle();
+    await initDB();
+    await promptUser();
 }
 
-// Start the application
 main().catch(err => {
     console.error(chalk.red('An error occurred:', err));
 });
