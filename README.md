@@ -26,6 +26,9 @@ Once installed, you can start using Snippet Manager by running:
 snippet-manager
 ```
 
+## Screenshots
+
+
 ### Features
 
 1. **Add Snippet**: 
@@ -74,6 +77,7 @@ This file is created automatically upon the first run of the program.
 ## Contributing
 
 Feel free to submit issues or pull requests for any improvements or bug fixes.
+Do give this repo a star⭐!
 
 ## License
 

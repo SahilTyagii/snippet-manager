@@ -11,7 +11,14 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/index.js"
   },
-  "keywords": [],
+  "keywords": [
+    "snippets",
+    "code",
+    "management",
+    "cli",
+    "git",
+    "snippet-manager"
+  ],
   "author": "Sahil Tyagi",
   "license": "MIT",
   "repository": {
