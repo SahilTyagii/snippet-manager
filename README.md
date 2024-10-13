@@ -23,6 +23,10 @@ npm install -g snippet-manager
 Once installed, you can start using Snippet Manager by running:
 
 ```bash
+snip
+```
+or
+```bash
 snippet-manager
 ```
 
