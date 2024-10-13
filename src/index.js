@@ -128,25 +128,33 @@ async function addMultiLineSnippet() {
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
-        terminal: true
+        terminal: false, // Ensure consistent behavior across platforms
     });
 
-    for await (const line of rl) {
+    rl.on('line', (line) => {
         if (line.trim() === 'END') {
-            break;
+            rl.close(); // Close readline when "END" is detected
+        } else {
+            lines.push(line);
         }
-        lines.push(line);
-    }
+    });
 
-    rl.close();
+    // Use a promise to wait until readline closes before proceeding
+    await new Promise((resolve) => rl.on('close', resolve));
 
-    const code = lines.join('\n');
     const { title } = await inquirer.prompt([
-        { name: 'title', message: 'Snippet Title:' },
+        {
+            type: 'input',
+            name: 'title',
+            message: 'Snippet Title:',
+            validate: (input) => (input ? true : 'Title cannot be empty.'),
+        },
     ]);
 
-    await addSnippet(title, code);
+    await addSnippet(title, lines.join('\n'));
+    console.log(chalk.green('Snippet added successfully!'));
 }
+
 
 async function updateMultiLineSnippet() {
     await listSnippets();
