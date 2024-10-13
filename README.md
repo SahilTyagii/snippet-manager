@@ -2,6 +2,11 @@
 
 Snippet Manager is a simple command-line tool for managing code snippets, similar to a mini Git for your snippets. You can easily add, list, update, delete, and inject snippets into files. This tool helps you keep your code snippets organized and accessible whenever you need them.
 
+![Snippet Manager](https://img.shields.io/badge/snippet--manager-easy--to--use-blueviolet?style=for-the-badge)
+![Platform](https://img.shields.io/badge/platform-node.js-339933?logo=node.js&logoColor=white&style=for-the-badge)
+![npm](https://img.shields.io/npm/dt/snippet-manager?color=blue&label=Downloads&logo=npm&style=for-the-badge)
+
+
 ## Features
 
 - Add code snippets with titles
