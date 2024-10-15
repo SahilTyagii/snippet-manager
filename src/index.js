@@ -174,7 +174,7 @@ async function appendSnippetToFile() {
 
 // Add a multi-line snippet
 async function addMultiLineSnippet() {
-    console.log(chalk.yellow('Enter your multi-line code snippet. Type "END" when done:'));
+    console.log(chalk.yellow('Enter your multi-line code snippet. Type "END" on a new line when you are done:\n'));
 
     const lines = [];
     const rl = readline.createInterface({ input: process.stdin });
@@ -206,7 +206,7 @@ async function updateMultiLineSnippet() {
         return;
     }
 
-    console.log(chalk.yellow('Enter the new multi-line code snippet. Type "END" when done:'));
+    console.log(chalk.yellow('Enter the new multi-line code snippet. Type "END" on a new line when you are done:\n'));
 
     const lines = [];
     const rl = readline.createInterface({ input: process.stdin });
