@@ -10,7 +10,7 @@ import readline from 'readline';
 import figlet from 'figlet';
 import FileTreeSelectionPrompt from 'inquirer-file-tree-selection-prompt';
 
-// Register file-tree-selection prompt
+// Register the file-tree-selection prompt
 inquirer.registerPrompt('file-tree-selection', FileTreeSelectionPrompt);
 
 // Define database paths
@@ -25,7 +25,7 @@ if (!fs.existsSync(dbDir)) {
 const adapter = new JSONFile(dbFilePath);
 const db = new Low(adapter);
 
-// Initialize database
+// Initialize the database
 async function initDB() {
     await db.read();
     db.data ||= { snippets: [] };
@@ -43,7 +43,7 @@ function displayTitle() {
     });
 }
 
-// Add a new snippet to the database
+// Add a new snippet
 async function addSnippet(title, code) {
     await db.read();
     db.data.snippets.push({ title, code, version: 1, createdAt: new Date() });
@@ -63,10 +63,9 @@ async function listSnippets() {
     });
 }
 
-// View a snippet's content in the terminal
+// View a specific snippet
 async function viewSnippet() {
     await listSnippets();
-
     const { index } = await inquirer.prompt([
         { type: 'number', name: 'index', message: 'Enter the snippet index to view:' },
     ]);
@@ -88,7 +87,7 @@ async function viewSnippet() {
     );
 }
 
-// Update a snippet
+// Update an existing snippet
 async function updateSnippet(index, newCode) {
     await db.read();
     if (index < 0 || index >= db.data.snippets.length) {
@@ -117,7 +116,7 @@ async function deleteSnippet() {
     console.log(chalk.green(`Snippet "${deletedSnippet[0].title}" deleted successfully!`));
 }
 
-// Append a snippet to a file (with both manual input and file tree selection)
+// Append a snippet to a file
 async function appendSnippetToFile() {
     await db.read();
     const { snippetIndex } = await inquirer.prompt([
@@ -159,9 +158,7 @@ async function appendSnippetToFile() {
             {
                 type: 'file-tree-selection',
                 name: 'selectedFilePath',
-                message:
-                    'Select the file from the tree:\n'
-                    + chalk.yellow('Use arrow keys to navigate. → to open folders, ← to close and "Enter" to Confirm Selection.'),
+                message: 'Select the file from the tree:',
             },
         ]);
         filePath = path.resolve(selectedFilePath);
@@ -196,7 +193,34 @@ async function addMultiLineSnippet() {
     await addSnippet(title, lines.join('\n'));
 }
 
-// Prompt the user for actions
+// Update a multi-line snippet
+async function updateMultiLineSnippet() {
+    await listSnippets();
+    const { index } = await inquirer.prompt([
+        { name: 'index', message: 'Enter snippet index to update:', type: 'number' },
+    ]);
+
+    const snippetIndex = index - 1;
+    if (snippetIndex < 0 || snippetIndex >= db.data.snippets.length) {
+        console.log(chalk.red('Invalid snippet index.'));
+        return;
+    }
+
+    console.log(chalk.yellow('Enter the new multi-line code snippet. Type "END" when done:'));
+
+    const lines = [];
+    const rl = readline.createInterface({ input: process.stdin });
+
+    for await (const line of rl) {
+        if (line.trim() === 'END') break;
+        lines.push(line);
+    }
+
+    rl.close();
+    await updateSnippet(snippetIndex, lines.join('\n'));
+}
+
+// Main prompt for user actions
 async function promptUser() {
     while (true) {
         const { action } = await inquirer.prompt([
@@ -237,13 +261,12 @@ async function promptUser() {
                 break;
             case 'Exit':
                 console.log(chalk.yellow('Exiting...'));
-                // setTimeout(() => console.clear(), 100);
                 return;
         }
     }
 }
 
-// Main function to initialize the app
+// Main function to start the app
 async function main() {
     displayTitle();
     await initDB();
