@@ -8,10 +8,16 @@ import inquirer from 'inquirer';
 import chalk from 'chalk';
 import readline from 'readline';
 import figlet from 'figlet';
+import FileTreeSelectionPrompt from 'inquirer-file-tree-selection-prompt';
 
+// Register file-tree-selection prompt
+inquirer.registerPrompt('file-tree-selection', FileTreeSelectionPrompt);
+
+// Define database paths
 const dbDir = path.join(os.homedir(), '.snippet-manager');
 const dbFilePath = path.join(dbDir, 'db.json');
 
+// Ensure the database directory exists
 if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
 }
@@ -19,23 +25,25 @@ if (!fs.existsSync(dbDir)) {
 const adapter = new JSONFile(dbFilePath);
 const db = new Low(adapter);
 
+// Initialize database
 async function initDB() {
     await db.read();
     db.data ||= { snippets: [] };
     await db.write();
 }
 
+// Display app title using figlet
 function displayTitle() {
     figlet.text('Snippet Manager', { font: 'Slant' }, (err, data) => {
         if (err) {
             console.log(chalk.red('Something went wrong...'));
-            console.dir(err);
             return;
         }
         console.log(chalk.blue(data));
     });
 }
 
+// Add a new snippet to the database
 async function addSnippet(title, code) {
     await db.read();
     db.data.snippets.push({ title, code, version: 1, createdAt: new Date() });
@@ -43,6 +51,7 @@ async function addSnippet(title, code) {
     console.log(chalk.green('Snippet added successfully!'));
 }
 
+// List all snippets
 async function listSnippets() {
     await db.read();
     if (db.data.snippets.length === 0) {
@@ -54,6 +63,32 @@ async function listSnippets() {
     });
 }
 
+// View a snippet's content in the terminal
+async function viewSnippet() {
+    await listSnippets();
+
+    const { index } = await inquirer.prompt([
+        { type: 'number', name: 'index', message: 'Enter the snippet index to view:' },
+    ]);
+
+    const snippetIndex = index - 1;
+    await db.read();
+
+    if (snippetIndex < 0 || snippetIndex >= db.data.snippets.length) {
+        console.log(chalk.red('Invalid snippet index.'));
+        return;
+    }
+
+    const snippet = db.data.snippets[snippetIndex];
+    console.log(
+        chalk.green(`\nTitle: ${snippet.title}\n`) +
+        chalk.cyan(`Version: ${snippet.version}\nCreated At: ${snippet.createdAt}\n`) +
+        chalk.white('Code:\n') +
+        chalk.gray(`${snippet.code}\n`)
+    );
+}
+
+// Update a snippet
 async function updateSnippet(index, newCode) {
     await db.read();
     if (index < 0 || index >= db.data.snippets.length) {
@@ -66,6 +101,7 @@ async function updateSnippet(index, newCode) {
     console.log(chalk.green('Snippet updated successfully!'));
 }
 
+// Delete a snippet
 async function deleteSnippet() {
     await listSnippets();
     const { index } = await inquirer.prompt([
@@ -81,6 +117,7 @@ async function deleteSnippet() {
     console.log(chalk.green(`Snippet "${deletedSnippet[0].title}" deleted successfully!`));
 }
 
+// Append a snippet to a file (with both manual input and file tree selection)
 async function appendSnippetToFile() {
     await db.read();
     const { snippetIndex } = await inquirer.prompt([
@@ -90,107 +127,76 @@ async function appendSnippetToFile() {
             message: 'Select a snippet to append to a file:',
             choices: db.data.snippets.map((snippet, index) => ({
                 name: `${snippet.title} (Version: ${snippet.version})`,
-                value: index
+                value: index,
             })),
         },
     ]);
 
-    let filePath = '';
-    while (!filePath) {
+    const snippetContent = `// Snippet: ${db.data.snippets[snippetIndex].title}\n${db.data.snippets[snippetIndex].code}\n\n`;
+
+    const { method } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'method',
+            message: 'How would you like to select the file?',
+            choices: ['Manual Path Entry', 'File Tree Selection'],
+        },
+    ]);
+
+    let filePath;
+    if (method === 'Manual Path Entry') {
         const { inputFilePath } = await inquirer.prompt([
             {
                 type: 'input',
                 name: 'inputFilePath',
-                message: 'Enter the file path where you want to append the snippet (Example: ./controllers/user.js):',
-                validate: (input) => {
-                    if (!input) return 'File path cannot be empty.';
-                    return true;
-                },
+                message: 'Enter the file path (Example: ./controllers/user.js):',
+                validate: (input) => (input ? true : 'File path cannot be empty.'),
             },
         ]);
-        filePath = inputFilePath;
+        filePath = path.resolve(inputFilePath);
+    } else {
+        const { selectedFilePath } = await inquirer.prompt([
+            {
+                type: 'file-tree-selection',
+                name: 'selectedFilePath',
+                message:
+                    'Select the file from the tree:\n'
+                    + chalk.yellow('Use arrow keys to navigate. → to open folders, ← to close and "Enter" to Confirm Selection.'),
+            },
+        ]);
+        filePath = path.resolve(selectedFilePath);
     }
 
-    const snippetContent = `// Snippet: ${db.data.snippets[snippetIndex].title}\n${db.data.snippets[snippetIndex].code}\n\n`;
     try {
-        fs.appendFileSync(path.resolve(filePath), snippetContent);
+        fs.appendFileSync(filePath, snippetContent);
         console.log(chalk.green(`Snippet appended to ${filePath} successfully!`));
     } catch (error) {
-        console.error(chalk.red(`Failed to append to file: ${error.message}`));
+        console.error(chalk.red(`Failed to append snippet: ${error.message}`));
     }
 }
 
-
+// Add a multi-line snippet
 async function addMultiLineSnippet() {
-    console.log(chalk.yellow('Enter your multi-line code snippet. Type "END" on a new line when you are done:\n'));
+    console.log(chalk.yellow('Enter your multi-line code snippet. Type "END" when done:'));
 
     const lines = [];
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        terminal: false, // Ensure consistent behavior across platforms
-    });
-
-    rl.on('line', (line) => {
-        if (line.trim() === 'END') {
-            rl.close(); // Close readline when "END" is detected
-        } else {
-            lines.push(line);
-        }
-    });
-
-    // Use a promise to wait until readline closes before proceeding
-    await new Promise((resolve) => rl.on('close', resolve));
-
-    const { title } = await inquirer.prompt([
-        {
-            type: 'input',
-            name: 'title',
-            message: 'Snippet Title:',
-            validate: (input) => (input ? true : 'Title cannot be empty.'),
-        },
-    ]);
-
-    await addSnippet(title, lines.join('\n'));
-    console.log(chalk.green('Snippet added successfully!'));
-}
-
-
-async function updateMultiLineSnippet() {
-    await listSnippets();
-
-    const { index } = await inquirer.prompt([
-        { name: 'index', message: 'Enter snippet index to update:', type: 'number' },
-    ]);
-
-    const snippetIndex = index - 1;
-    if (snippetIndex < 0 || snippetIndex >= db.data.snippets.length) {
-        console.log(chalk.red('Invalid snippet index.'));
-        return;
-    }
-
-    console.log(chalk.yellow('Enter the new multi-line code snippet. Type "END" on a new line when you are done:\n'));
-
-    const lines = [];
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        terminal: true
-    });
+    const rl = readline.createInterface({ input: process.stdin });
 
     for await (const line of rl) {
-        if (line.trim() === 'END') {
-            break;
-        }
+        if (line.trim() === 'END') break;
         lines.push(line);
     }
 
     rl.close();
 
-    const newCode = lines.join('\n');
-    await updateSnippet(snippetIndex, newCode);
+    const { title } = await inquirer.prompt([
+        { type: 'input', name: 'title', message: 'Snippet Title:' },
+    ]);
+
+    await addSnippet(title, lines.join('\n'));
 }
 
+// Prompt the user for actions
 async function promptUser() {
     while (true) {
         const { action } = await inquirer.prompt([
@@ -201,23 +207,27 @@ async function promptUser() {
                 choices: [
                     'Add Snippet',
                     'List Snippets',
+                    'View Snippet',
                     'Update Snippet',
                     'Delete Snippet',
                     'Inject Snippet in File',
-                    'Exit'
+                    'Exit',
                 ],
             },
         ]);
 
         switch (action) {
             case 'Add Snippet':
-                if (await addMultiLineSnippet()) return;
+                await addMultiLineSnippet();
                 break;
             case 'List Snippets':
                 await listSnippets();
                 break;
+            case 'View Snippet':
+                await viewSnippet();
+                break;
             case 'Update Snippet':
-                if (await updateMultiLineSnippet()) return;
+                await updateMultiLineSnippet();
                 break;
             case 'Delete Snippet':
                 await deleteSnippet();
@@ -227,18 +237,18 @@ async function promptUser() {
                 break;
             case 'Exit':
                 console.log(chalk.yellow('Exiting...'));
-                console.clear();
+                // setTimeout(() => console.clear(), 100);
                 return;
         }
     }
 }
 
+// Main function to initialize the app
 async function main() {
     displayTitle();
     await initDB();
     await promptUser();
 }
 
-main().catch(err => {
-    console.error(chalk.red('An error occurred:', err));
-});
+// Run the app
+main().catch((err) => console.error(chalk.red(`Error: ${err.message}`)));
