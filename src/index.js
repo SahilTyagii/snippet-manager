@@ -228,9 +228,9 @@ async function sendAnalytics(action) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action, timestamp: new Date().toISOString() }),
         });
-        console.log(`Analytics sent: ${action}`);  // Debugging
+        // console.log(`Analytics sent: ${action}`);  // Debugging
     } catch (error) {
-        console.error("Failed to send analytics:", error.message);
+        // console.error("Failed to send analytics:", error.message);
         // Fail silently to avoid affecting user experience
     }
 }
