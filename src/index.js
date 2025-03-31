@@ -220,6 +220,21 @@ async function updateMultiLineSnippet() {
     await updateSnippet(snippetIndex, lines.join('\n'));
 }
 
+// Get user analytics
+async function sendAnalytics(action) {
+    try {
+        await fetch("https://snippet-manager-analytics-production.up.railway.app/log", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action, timestamp: new Date().toISOString() }),
+        });
+        console.log(`Analytics sent: ${action}`);  // Debugging
+    } catch (error) {
+        console.error("Failed to send analytics:", error.message);
+        // Fail silently to avoid affecting user experience
+    }
+}
+
 // Main prompt for user actions
 async function promptUser() {
     while (true) {
@@ -239,6 +254,8 @@ async function promptUser() {
                 ],
             },
         ]);
+
+        sendAnalytics(action);
 
         switch (action) {
             case 'Add Snippet':
